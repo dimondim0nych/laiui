@@ -1,0 +1,15 @@
+# Chats, models and llama.cpp folder
+chats/
+models/
+llama/
+
+# Python compiled files (and cache)
+__pycache__/
+*.pyc
+
+# Logs
+*.log
+
+# Other files and folders
+.vscode/
+settings.json

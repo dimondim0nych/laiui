@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LaiUI</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar" id="sidebar">
+      <h1 class="logo">LaiUI</h1>
+      <div class="side-actions">
+        <button class="side-btn" id="newChatBtn" type="button">
+          <span class="ico" aria-hidden="true">+</span>Создать новый чат
+        </button>
+        <button class="side-btn" id="instructionsBtn" type="button">
+          <span class="ico" aria-hidden="true">…</span>Задать свои системные инструкции
+        </button>
+      </div>
+      <nav class="chat-list" id="chatList" aria-label="Чаты"></nav>
+    </aside>
+
+    <main class="main">
+      <button class="menu-btn" id="menuBtn" type="button" aria-label="Открыть меню">☰</button>
+
+      <div class="messages" id="messages">
+        <div class="thread" id="thread">
+          <div class="msg user"><div class="bubble">Объясни, чем GGUF отличается от обычных весов модели.</div></div>
+          <div class="msg assistant">
+            <details class="think" open>
+              <summary>Рассуждения</summary>
+              <div class="think-body">Пользователь спрашивает про формат GGUF. Нужно коротко назвать главное: один файл, квантизация, метаданные, работа через llama.cpp.</div>
+            </details>
+            <div class="bubble">GGUF хранит модель в одном файле вместе с метаданными и токенизатором. Веса обычно квантизованы, поэтому файл меньше и модель запускается на обычном железе через llama.cpp.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="composer">
+        <textarea id="prompt" rows="1" placeholder="Задайте свой вопрос..." aria-label="Ваш вопрос"></textarea>
+        <div class="model-row">
+          <span class="model-name" id="modelName">qwen3-1.7b.gguf</span>
+          <div class="model-picker">
+            <button class="model-btn" id="modelBtn" type="button" aria-haspopup="listbox" aria-expanded="false">Выбрать модель</button>
+            <ul class="model-menu" id="modelMenu" role="listbox" hidden></ul>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <dialog id="instructionsDialog">
+    <form method="dialog" class="dialog-body">
+      <h2>Системные инструкции</h2>
+      <p class="hint">Применяются ко всем чатам и сохраняются между запусками.</p>
+      <textarea id="instructionsText" rows="8" aria-label="Системные инструкции"></textarea>
+      <div class="dialog-actions">
+        <button class="btn" value="cancel">Отмена</button>
+        <button class="btn primary" value="save">Сохранить</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="deleteDialog">
+    <form method="dialog" class="dialog-body">
+      <h2>Удалить чат?</h2>
+      <p class="hint" id="deleteHint"></p>
+      <div class="dialog-actions">
+        <button class="btn" value="cancel">Отмена</button>
+        <button class="btn danger" value="delete">Удалить</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
