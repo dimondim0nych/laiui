@@ -6,6 +6,7 @@
   let pendingDeleteId = null;
   let generating = false;
   let currentModel = null;
+  let abortController = null;
 
   const sidebar = document.getElementById("sidebar");
   const chatList = document.getElementById("chatList");
@@ -19,6 +20,7 @@
   const instructionsText = document.getElementById("instructionsText");
   const deleteDialog = document.getElementById("deleteDialog");
   const deleteHint = document.getElementById("deleteHint");
+  const stopBtn = document.getElementById("stopBtn");
 
   // ---------- API helpers ----------
 
@@ -107,6 +109,14 @@
       view.details.open = false;
     }
     view.bubble.textContent = message.content;
+    if (message.stopped) { markStopped(view); }
+  }
+
+  function markStopped(view) {
+    const note = document.createElement("div");
+    note.className = "stopped-note";
+    note.textContent = "Генерация остановлена";
+    view.msg.appendChild(note);
   }
 
   // ---------- Chats ----------
@@ -245,9 +255,12 @@
     }
 
     generating = true;
+    abortController = new AbortController();
+    stopBtn.hidden = false;
     prompt.value = "";
     autoGrow();
 
+    let view = null;
     try {
       if (!activeId) {
         const chat = await api("/api/chats", jsonOptions("POST", {}));
@@ -256,14 +269,16 @@
       addUserMessage(text);
       scrollToBottom();
 
-      const res = await fetch("/api/chats/" + activeId + "/messages", jsonOptions("POST", { content: text }));
+      const options = jsonOptions("POST", { content: text });
+      options.signal = abortController.signal;
+      const res = await fetch("/api/chats/" + activeId + "/messages", options);
       if (!res.ok) {
         let data = {};
         try { data = await res.json(); } catch (e) { /* empty body */ }
         throw new Error(data.error || "HTTP " + res.status);
       }
 
-      const view = createAssistantMessage();
+      view = createAssistantMessage();
       const state = { thinking: "", content: "" };
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
@@ -281,9 +296,16 @@
         }
       }
     } catch (err) {
-      addError(err.message);
+      if (err.name === "AbortError") {
+        markStopped(view || createAssistantMessage());
+        scrollToBottom();
+      } else {
+        addError(err.message);
+      }
     } finally {
       generating = false;
+      abortController = null;
+      stopBtn.hidden = true;
       try { await loadChats(); } catch (e) { /* list refresh is not critical */ }
     }
   }
@@ -409,6 +431,10 @@
 
   document.getElementById("menuBtn").addEventListener("click", function () {
     sidebar.classList.toggle("open");
+  });
+
+  stopBtn.addEventListener("click", function () {
+    if (abortController) { abortController.abort(); }
   });
 
   prompt.addEventListener("input", autoGrow);

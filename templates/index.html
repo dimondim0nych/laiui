@@ -38,7 +38,10 @@
       </div>
 
       <div class="composer">
-        <textarea id="prompt" rows="1" placeholder="Задайте свой вопрос..." aria-label="Ваш вопрос"></textarea>
+        <div class="input-row">
+          <textarea id="prompt" rows="1" placeholder="Задайте свой вопрос..." aria-label="Ваш вопрос"></textarea>
+          <button class="stop-btn" id="stopBtn" type="button" title="Остановить генерацию" aria-label="Остановить генерацию" hidden>■</button>
+        </div>
         <div class="model-row">
           <span class="model-name" id="modelName">qwen3-1.7b.gguf</span>
           <div class="model-picker">

@@ -191,6 +191,8 @@ def build_messages(history, system_prompt):
 
     kept = []
     for message in reversed(history):
+        if not message["content"]:
+            continue
         cost = estimate_tokens(message["content"])
         if kept and used + cost > budget:
             break
@@ -255,6 +257,7 @@ def stream_reply(chat, payload_messages):
     splitter = ThinkSplitter()
     parts = {"thinking": "", "content": ""}
     resp = None
+    stopped = False
 
     def make_event(kind, text):
         if not parts[kind]:
@@ -301,6 +304,10 @@ def stream_reply(chat, payload_messages):
             if event:
                 yield event
         yield sse_line({"type": "done"})
+    except GeneratorExit:
+        # The client closed the connection (stop button or closed tab)
+        stopped = True
+        raise
     except (urllib.error.URLError, OSError, ValueError) as exc:
         yield sse_line({"type": "error", "message": f"llama-server request failed: {exc}"})
     finally:
@@ -312,9 +319,10 @@ def stream_reply(chat, payload_messages):
             # Reload from disk: the chat may have been renamed or deleted meanwhile
             fresh = load_chat(chat["id"])
             if fresh is not None:
-                fresh.setdefault("messages", []).append(
-                    {"role": "assistant", "content": content, "thinking": thinking}
-                )
+                reply = {"role": "assistant", "content": content, "thinking": thinking}
+                if stopped:
+                    reply["stopped"] = True
+                fresh.setdefault("messages", []).append(reply)
                 save_chat(fresh)
 
 
