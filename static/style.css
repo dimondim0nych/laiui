@@ -527,3 +527,17 @@ dialog::backdrop { background: rgba(0, 0, 0, 0.45); }
   color: var(--muted);
   font-size: 13px;
 }
+
+/* Version tag */
+.version-tag {
+  position: fixed;
+  right: 12px;
+  bottom: 6px;
+  z-index: 1;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.composer { padding-bottom: 28px; }

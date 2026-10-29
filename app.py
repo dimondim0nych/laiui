@@ -19,6 +19,8 @@ CHATS_DIR = BASE_DIR / "chats"
 SETTINGS_FILE = BASE_DIR / "settings.json"
 LOG_FILE = BASE_DIR / "llama-server.log"
 
+APP_VERSION = "1.1.0"
+
 LLAMA_HOST = "127.0.0.1"
 LLAMA_PORT = 8081
 LLAMA_URL = f"http://{LLAMA_HOST}:{LLAMA_PORT}"
@@ -366,7 +368,7 @@ def json_body():
 
 @app.get("/")
 def index():
-    return render_template("index.html")
+    return render_template("index.html", version=APP_VERSION)
 
 
 @app.get("/api/models")
