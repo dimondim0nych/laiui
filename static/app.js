@@ -124,6 +124,13 @@
       title.title = chat.title;
       title.addEventListener("click", function () { openChat(chat.id); });
 
+      const edit = document.createElement("button");
+      edit.type = "button";
+      edit.className = "chat-edit";
+      edit.textContent = "✎";
+      edit.setAttribute("aria-label", "Переименовать чат «" + chat.title + "»");
+      edit.addEventListener("click", function () { startRename(chat, item, title); });
+
       const del = document.createElement("button");
       del.type = "button";
       del.className = "chat-del";
@@ -136,9 +143,50 @@
       });
 
       item.appendChild(title);
+      item.appendChild(edit);
       item.appendChild(del);
       chatList.appendChild(item);
     });
+  }
+
+  function startRename(chat, item, titleBtn) {
+    const input = document.createElement("input");
+    input.type = "text";
+    input.className = "chat-rename";
+    input.value = chat.title;
+    input.maxLength = 100;
+    input.setAttribute("aria-label", "Новое название чата");
+
+    let finished = false;
+    async function finish(save) {
+      if (finished) { return; }
+      finished = true;
+      const value = input.value.trim();
+      if (save && value && value !== chat.title) {
+        try {
+          const data = await api("/api/chats/" + chat.id, jsonOptions("PATCH", { title: value }));
+          chat.title = data.title;
+        } catch (err) {
+          addError(err.message);
+        }
+      }
+      renderChats();
+    }
+
+    input.addEventListener("keydown", function (event) {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        finish(true);
+      } else if (event.key === "Escape") {
+        event.stopPropagation();
+        finish(false);
+      }
+    });
+    input.addEventListener("blur", function () { finish(true); });
+
+    item.replaceChild(input, titleBtn);
+    input.focus();
+    input.select();
   }
 
   async function loadChats() {

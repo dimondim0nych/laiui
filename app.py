@@ -28,6 +28,7 @@ LOAD_TIMEOUT = 180
 
 DEFAULT_TITLE = "Новый чат"
 TITLE_MAX = 40
+RENAME_MAX = 100
 CHAT_ID_RE = re.compile(r"^[0-9a-f]{32}$")
 
 app = Flask(__name__)
@@ -71,8 +72,9 @@ def load_chat(chat_id):
     return chat if isinstance(chat, dict) else None
 
 
-def save_chat(chat):
-    chat["updated_at"] = time.time()
+def save_chat(chat, touch=True):
+    if touch:
+        chat["updated_at"] = time.time()
     write_json_atomic(CHATS_DIR / f"{chat['id']}.json", chat)
 
 
@@ -307,10 +309,13 @@ def stream_reply(chat, payload_messages):
         content = parts["content"].strip()
         thinking = parts["thinking"].strip()
         if content or thinking:
-            chat["messages"].append(
-                {"role": "assistant", "content": content, "thinking": thinking}
-            )
-            save_chat(chat)
+            # Reload from disk: the chat may have been renamed or deleted meanwhile
+            fresh = load_chat(chat["id"])
+            if fresh is not None:
+                fresh.setdefault("messages", []).append(
+                    {"role": "assistant", "content": content, "thinking": thinking}
+                )
+                save_chat(fresh)
 
 
 # ---------- Routes ----------
@@ -380,6 +385,19 @@ def api_get_chat(chat_id):
     if chat is None:
         return jsonify({"error": "Chat not found"}), 404
     return jsonify(chat)
+
+
+@app.patch("/api/chats/<chat_id>")
+def api_rename_chat(chat_id):
+    chat = load_chat(chat_id)
+    if chat is None:
+        return jsonify({"error": "Chat not found"}), 404
+    title = " ".join(str(json_body().get("title", "")).split())
+    if not title:
+        return jsonify({"error": "Empty title"}), 400
+    chat["title"] = title[:RENAME_MAX]
+    save_chat(chat, touch=False)
+    return jsonify({"id": chat_id, "title": chat["title"]})
 
 
 @app.delete("/api/chats/<chat_id>")

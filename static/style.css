@@ -451,3 +451,38 @@ dialog::backdrop { background: rgba(0, 0, 0, 0.45); }
   opacity: 0.6;
   cursor: wait;
 }
+
+/* Chat renaming */
+.chat-edit {
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1;
+  opacity: 0;
+}
+
+.chat-item:hover .chat-edit,
+.chat-item:focus-within .chat-edit,
+.chat-item.active .chat-edit { opacity: 1; }
+
+.chat-edit:hover {
+  color: var(--accent);
+  background: var(--line);
+}
+
+.chat-rename {
+  flex: 1;
+  min-width: 0;
+  margin: 2px 4px;
+  padding: 5px 8px;
+  border: 2px solid var(--accent);
+  border-radius: 6px;
+  background: var(--panel);
+  font-size: 14px;
+}
+
+.chat-rename:focus-visible { outline: none; }
