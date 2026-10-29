@@ -109,7 +109,23 @@
       view.details.open = false;
     }
     view.bubble.textContent = message.content;
+    if (message.stats) { showStats(view, message.stats); }
     if (message.stopped) { markStopped(view); }
+  }
+
+  function showStats(view, stats) {
+    const parts = [];
+    if (typeof stats.prompt_per_second === "number") {
+      parts.push("промпт: " + stats.prompt_per_second.toFixed(1) + " ток/с");
+    }
+    if (typeof stats.predicted_per_second === "number") {
+      parts.push("генерация: " + stats.predicted_per_second.toFixed(1) + " ток/с");
+    }
+    if (!parts.length) { return; }
+    const note = document.createElement("div");
+    note.className = "stats-note";
+    note.textContent = parts.join(" · ");
+    view.msg.appendChild(note);
   }
 
   function markStopped(view) {
@@ -240,6 +256,8 @@
       if (!state.content && view.details) { view.details.open = false; }
       state.content += event.text;
       view.bubble.textContent = state.content;
+    } else if (event.type === "stats") {
+      showStats(view, event.stats);
     } else if (event.type === "error") {
       addError(event.message);
     }
