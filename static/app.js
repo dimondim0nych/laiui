@@ -109,16 +109,48 @@
       view.details.open = false;
     }
     view.bubble.textContent = message.content;
-    if (message.stats) { showStats(view, message.stats); }
+    showFooter(view, message.duration, message.stats);
     if (message.stopped) { markStopped(view); }
   }
 
-  function showStats(view, stats) {
+  function formatDuration(seconds) {
+    const total = Math.max(0, Math.round(seconds));
+    const h = Math.floor(total / 3600);
+    const m = Math.floor((total % 3600) / 60);
+    const s = total % 60;
+    const pad = function (n) { return String(n).padStart(2, "0"); };
+    return h ? h + ":" + pad(m) + ":" + pad(s) : m + ":" + pad(s);
+  }
+
+  function startTimer(view) {
+    const startedAt = performance.now();
+    const note = document.createElement("div");
+    note.className = "stats-note";
+    view.msg.appendChild(note);
+
+    function elapsed() { return (performance.now() - startedAt) / 1000; }
+    function tick() { note.textContent = "Модель работает: " + formatDuration(elapsed()); }
+
+    tick();
+    const id = setInterval(tick, 1000);
+    return {
+      stop: function () {
+        clearInterval(id);
+        note.remove();
+        return elapsed();
+      }
+    };
+  }
+
+  function showFooter(view, duration, stats) {
     const parts = [];
-    if (typeof stats.prompt_per_second === "number") {
+    if (typeof duration === "number") {
+      parts.push("время: " + formatDuration(duration));
+    }
+    if (stats && typeof stats.prompt_per_second === "number") {
       parts.push("промпт: " + stats.prompt_per_second.toFixed(1) + " ток/с");
     }
-    if (typeof stats.predicted_per_second === "number") {
+    if (stats && typeof stats.predicted_per_second === "number") {
       parts.push("генерация: " + stats.predicted_per_second.toFixed(1) + " ток/с");
     }
     if (!parts.length) { return; }
@@ -257,7 +289,9 @@
       state.content += event.text;
       view.bubble.textContent = state.content;
     } else if (event.type === "stats") {
-      showStats(view, event.stats);
+      state.stats = event.stats;
+    } else if (event.type === "done") {
+      state.duration = event.duration;
     } else if (event.type === "error") {
       addError(event.message);
     }
@@ -278,13 +312,19 @@
     prompt.value = "";
     autoGrow();
 
+    const state = { thinking: "", content: "", duration: null, stats: null };
     let view = null;
+    let timer = null;
+    let outcome = "error";
+
     try {
       if (!activeId) {
         const chat = await api("/api/chats", jsonOptions("POST", {}));
         activeId = chat.id;
       }
       addUserMessage(text);
+      view = createAssistantMessage();
+      timer = startTimer(view);
       scrollToBottom();
 
       const options = jsonOptions("POST", { content: text });
@@ -296,8 +336,6 @@
         throw new Error(data.error || "HTTP " + res.status);
       }
 
-      view = createAssistantMessage();
-      const state = { thinking: "", content: "" };
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let buffer = "";
@@ -313,14 +351,27 @@
           if (line) { handleEvent(JSON.parse(line), view, state); }
         }
       }
+      outcome = "done";
     } catch (err) {
       if (err.name === "AbortError") {
-        markStopped(view || createAssistantMessage());
-        scrollToBottom();
+        outcome = "stopped";
       } else {
         addError(err.message);
       }
     } finally {
+      const stick = isNearBottom();
+      const elapsed = timer ? timer.stop() : null;
+      if (view) {
+        if (outcome === "done") {
+          showFooter(view, state.duration !== null ? state.duration : elapsed, state.stats);
+        } else if (outcome === "stopped") {
+          showFooter(view, elapsed, null);
+          markStopped(view);
+        } else if (!state.content && !state.thinking) {
+          view.msg.remove();
+        }
+      }
+      if (stick) { scrollToBottom(); }
       generating = false;
       abortController = null;
       stopBtn.hidden = true;
